@@ -7,6 +7,23 @@
 #include "mmu.h"
 #include "proc.h"
 
+int sys_nice(void)
+{
+    // struct proc *p;
+    // int count = 0;
+
+    // acquire(&ptable.lock);  // Lock the process table
+    // for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+    //     if (p->state != UNUSED) {
+    //         count++;
+    //     }
+    // }
+    // release(&ptable.lock);  // Unlock the process table
+
+    // return count;  // Return the count of active processes
+    return nice();
+}
+
 int
 sys_fork(void)
 {
@@ -39,7 +56,7 @@ sys_kill(void)
 int
 sys_getpid(void)
 {
-  return myproc()->pid;
+  return proc->pid;
 }
 
 int
@@ -50,7 +67,7 @@ sys_sbrk(void)
 
   if(argint(0, &n) < 0)
     return -1;
-  addr = myproc()->sz;
+  addr = proc->sz;
   if(growproc(n) < 0)
     return -1;
   return addr;
@@ -67,7 +84,7 @@ sys_sleep(void)
   acquire(&tickslock);
   ticks0 = ticks;
   while(ticks - ticks0 < n){
-    if(myproc()->killed){
+    if(proc->killed){
       release(&tickslock);
       return -1;
     }

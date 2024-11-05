@@ -1,0 +1,13 @@
+#define Sergey Bob
+#define American Chinese
+#define computer real
+
+
+Sergey Mikhailovich Brin is an American businessman and computer scientist who co-founded Google with Larry Page.
+
+
+
+
+
+
+He was the president of Google parent company, Alphabet Inc., until stepping down from the role on December 3, 2019.
