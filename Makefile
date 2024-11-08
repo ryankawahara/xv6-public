@@ -176,6 +176,7 @@ UPROGS=\
 	_hello\
 	_preprocess\
 	_nice\
+	_test_process\
 
 fs.img: mkfs README *.txt $(UPROGS)
 	./mkfs fs.img README *.txt $(UPROGS)

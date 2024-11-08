@@ -7,6 +7,7 @@
 #include "proc.h"
 #include "spinlock.h"
 #include "defs.h"
+#define PRIORITY
 
 struct {
   struct spinlock lock;
@@ -33,21 +34,55 @@ pinit(void)
 // state required to run in the kernel.
 // Otherwise return 0.
 
-int nice(void)
-{
+int nice(int pid, int value) {
     struct proc *p;
-    int count = 0;
+    int old_nice = -1;
+     if (value > 5) {
+        cprintf("Error: Nice value cannot be set above 5.\n");
+        return -1;
+    }
 
     acquire(&ptable.lock);  // Lock the process table
+
     for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
-        if (p->state != UNUSED) {
-            cprintf("Process PID: %d\n", p->pid);  // Print each active process's PID
-            count++;
+        if (p->pid == pid) {  // Find the process with the given PID
+            old_nice = p->priority;
+            p->priority = value;  // Update the nice value
+            cprintf("Updating PID %d nice value from %d to %d\n", pid, old_nice, value);
+            break;
         }
     }
+
     release(&ptable.lock);  // Unlock the process table
-    return count;  // Return the count of active processes
+    return old_nice;  // Return the old nice value
 }
+
+// Must be called with interrupts disabled
+int
+cpuid() {
+  return mycpu()-cpus;
+}
+
+// Must be called with interrupts disabled to avoid the caller being
+// rescheduled between reading lapicid and running through the loop.
+struct cpu*
+mycpu(void)
+{
+  int apicid, i;
+  
+  if(readeflags()&FL_IF)
+    panic("mycpu called with interrupts enabled\n");
+  
+  apicid = lapicid();
+  // APIC IDs are not guaranteed to be contiguous. Maybe we should have
+  // a reverse map, or reserve a register to store &cpus[i].
+  for (i = 0; i < ncpu; ++i) {
+    if (cpus[i].apicid == apicid)
+      return &cpus[i];
+  }
+  panic("unknown apicid\n");
+}
+
 static struct proc*
 allocproc(void)
 {
@@ -296,8 +331,47 @@ wait(void)
 void
 scheduler(void)
 {
-  struct proc *p;
+  #ifdef PRIORITY
+  struct proc *p1, *p2;
 
+  struct cpu *c = mycpu();
+  c->proc = 0;
+
+  for(;;) {
+    sti();
+    struct proc *hiP;
+
+    acquire(&ptable.lock);
+
+    for(p1=ptable.proc; p1 < &ptable.proc[NPROC]; p1++) {
+      if(p1->state != RUNNABLE) {
+        continue;
+      }
+
+      hiP = p1;
+
+      for(p2 = ptable.proc; p2 < &ptable.proc[NPROC]; p2++) {
+        if (p2->state != RUNNABLE) {
+          continue;
+        }
+        if(hiP->priority > p2->priority) {
+          hiP = p2;
+        }
+      }
+      p1 = hiP;
+      c->proc = p1;
+      switchuvm(p1);
+      p1->state = RUNNING;
+
+      swtch(&(c->scheduler), p1->context);
+      switchkvm();
+
+      c->proc = 0;
+    }
+    release(&ptable.lock);
+  }
+
+  #else
   for(;;){
     // Enable interrupts on this processor.
     sti();
@@ -324,6 +398,8 @@ scheduler(void)
     release(&ptable.lock);
 
   }
+  #endif
+
 }
 
 // Enter scheduler.  Must hold only ptable.lock

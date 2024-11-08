@@ -9,19 +9,18 @@
 
 int sys_nice(void)
 {
-    // struct proc *p;
-    // int count = 0;
+  int pid, value;
 
-    // acquire(&ptable.lock);  // Lock the process table
-    // for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
-    //     if (p->state != UNUSED) {
-    //         count++;
-    //     }
-    // }
-    // release(&ptable.lock);  // Unlock the process table
+  // Retrieve arguments passed from the user space
+  if (argint(0, &pid) < 0 || argint(1, &value) < 0)
+      return -1;
+  if (value > 5) {  // Enforce maximum nice value of 5
+        cprintf("Error: Nice value cannot be set above 5.\n");
+        return -1;
+    }
 
-    // return count;  // Return the count of active processes
-    return nice();
+
+  return nice(pid, value);   
 }
 
 int
