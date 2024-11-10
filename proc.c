@@ -37,24 +37,34 @@ pinit(void)
 int nice(int pid, int value) {
     struct proc *p;
     int old_nice = -1;
-     if (value > 5) {
-        cprintf("Error: Nice value cannot be set above 5.\n");
+     if (value > 5 || value < 1) {
+        cprintf("Error: Invalid nice value.\n");
         return -1;
     }
 
     acquire(&ptable.lock);  // Lock the process table
 
+    // for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+
+    //   if (p->pid != 0) {
+    //   cprintf("here is a process %d\n", p->pid);
+    //   }
+    // }
+
     for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
-        if (p->pid == pid) {  // Find the process with the given PID
+        if (p->pid == pid) { 
             old_nice = p->priority;
-            p->priority = value;  // Update the nice value
-            cprintf("Updating PID %d nice value from %d to %d\n", pid, old_nice, value);
+            p->priority = value; 
+            // cprintf("%d %d\n", pid, old_nice);
             break;
         }
     }
 
-    release(&ptable.lock);  // Unlock the process table
-    return old_nice;  // Return the old nice value
+    release(&ptable.lock);  
+    if (old_nice == -1) {
+      cprintf("PID %d not found in process table\n", pid);
+    }
+    return old_nice;  
 }
 
 // Must be called with interrupts disabled
@@ -101,6 +111,7 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
+  p->priority=3;
 
   release(&ptable.lock);
 

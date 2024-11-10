@@ -21,6 +21,7 @@ int main(int argc, char *argv[]) {
 
     old_value = nice(pid, value);  // Call the system call
     if (old_value < 0) {
+        printf(1, "%d", old_value);
         printf(2, "Error: Failed to set nice value.\n");
     } else {
         printf(1, "%d %d\n", pid, old_value);
